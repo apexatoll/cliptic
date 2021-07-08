@@ -1,8 +1,11 @@
-require 'date'
-require 'json'
-require 'time'
+require 'cgi'
+require 'curb'
 require 'curses'
+require 'date'
+require 'fileutils'
+require 'json'
 require 'sqlite3'
+require 'time'
 
 #require_relative "cliptic/version"
 
@@ -55,7 +58,6 @@ module Cliptic
     def self.small_num(n)
       n.to_s.chars.map{|n| Nums[n.to_i]}.join
     end
-
   end
   class Screen
     def self.setup
@@ -74,7 +76,32 @@ module Cliptic
     end
   end
   module Config
+    Dir_Path  = "#{Dir.home}/.config/cliptic"
+    File_Path = "#{Dir_Path}/cliptic.rc"
+    class Default
+      def self.colors
+        {
+          box:4, grid:8, bar:16, logo_grid:8, 
+          logo_text:1, title:1, stats:4
+        }
+      end
+      def self.config
+        {
+          auto_advance:1,
+          auto_mark:1,
+          auto_save:1
+        }
+      end
+    end
+    class Setter
 
+    end
+    class Reader
+
+    end
+    class Maker
+
+    end
   end
   module Database
     Path = "#{Dir.home}/db/cw.db"
@@ -88,9 +115,10 @@ module Cliptic
       def make_table
         db.execute(sql_make)
       end
-      def select(cols:"*", where:nil)
+      def select(cols:"*", where:nil, order:false, limit:false)
         db.execute(
-          sql_select(cols:cols, where:where),
+          sql_select(cols:cols, where:where, 
+                     order:order, limit:limit),
           where&.values&.map(&:to_s)
         )
       end
@@ -100,14 +128,19 @@ module Cliptic
           cols.map{|col,type|"#{col} #{type}"}.join(", ")
         })"
       end
-      def sql_select(cols:, where:)
+      def sql_select(cols:, where:, order:, limit:)
         "SELECT #{cols} FROM #{table}" +
-          where ? " WHERE #{placeholder(where.keys)}":""+
-          order ? " ORDER BY " : ""
-          limit ? " LIMIT #{limit}" : ""
+          (where ? where_str(where)  : "") +
+          (order ? order_str(order)  : "") +
+          (limit ? " LIMIT #{limit}" : "")
       end
       def where_str(where)
-        "WHERE #{placeholder(where.keys)}"
+        " WHERE #{placeholder(where.keys)}"
+      end
+      def order_str(order)
+        " ORDER BY #{order.keys
+          .map{|k| "#{k} #{order[k]}"}
+          .join(", ")}" 
       end
       def placeholder(keys, glue=" AND ")
         keys.map{|k| "#{k} = ?"}.join(glue)
@@ -190,10 +223,29 @@ module Cliptic
           play_time: :TIME
         }
       end
-      #def select_list
-        #select(cols:"*", ord:{})
-      #end
+      def select_list
+        select(cols:"*", order:{play_date:"ASC", play_time:"ASC"}, limit:10)
+      end
+    end
+    class Scores < SQL
+      def initialize
+        super(table:"scores").make_table
+      end
+      def cols
+        {
+          date: :DATE,
+          date_done: :DATE,
+          time: :TEXT,
+          reveals: :INT
+        }
+      end
+      def add(game:)
 
+      end
+      def select_list
+        select(cols:"*", where:{reveals:0}, 
+               order:{time:"ASC"}, limit:10)
+      end
     end
   end
   module Windows
@@ -218,7 +270,6 @@ module Cliptic
           self << line
         end; setpos.color.noutrefresh
         self
-        #getch
       end
       def color(cp=0)
         color_set(cp); self
@@ -379,6 +430,30 @@ module Cliptic
     end
   end
   module Interface
+    class Top_Bar < Windows::Bar
+      attr_reader :date
+      def initialize(date:Date.today)
+        super(line:0)
+        @date = date
+      end
+      def draw
+        super
+        add_str(x:1, str:title, bold:true)
+        add_str(x:title.length+2, str:date.to_long)
+      end
+      def title
+        "cliptic:"
+      end
+    end
+    class Bottom_Bar < Windows::Bar
+      def initialize
+        super(line:Curses.lines-1)
+      end
+      def draw
+        super
+        noutrefresh
+      end
+    end
     class Logo < Windows::Grid
       attr_reader :text
       def initialize(line:, text:"CLIptic")
@@ -440,16 +515,19 @@ module Cliptic
       end
     end
     class Menu_Box < Windows::Window
-      attr_reader :logo, :title
+      include Interface
+      attr_reader :logo, :title, :top_b, :bot_b
       def initialize(y:, title:false)
         line = (Curses.lines-15)/2
         @logo = Logo.new(line:line+1)
-        super(y:y, x:logo.x+4, line:line, col:nil)
         @title = title
+        super(y:y, x:logo.x+4, line:line, col:nil)
+        @top_b = Top_Bar.new
+        @bot_b = Bottom_Bar.new
       end
       def draw
         super
-        logo.draw
+        [top_b, bot_b, logo].each(&:draw)
         add_title if title
         self
       end
@@ -514,7 +592,7 @@ module Cliptic
     end
     class Menu_With_Stats < Menu
       attr_reader :stat_win
-      def initialize(height:opts.length+6, sel:Selector)
+      def initialize(height:opts.length+6, sel:Selector, **)
         super(height:height, sel:sel, sel_opts:opts, 
               tick:->{update_stats})
         @stat_win = Stat_Window.new(line:line+height)
@@ -553,8 +631,8 @@ module Cliptic
           "Play Today" => ->{exit},
           "Select Date"=> ->{Select_Date.new.choose_opt},
           "This Week"  => ->{This_Week.new.choose_opt},
-          "Recent Puzzles" => ->{exit},
-          "High Scores"=> ->{exit},
+          "Recent Puzzles" => ->{Recent_Puzzles.new.choose_opt},
+          "High Scores"=> ->{High_Scores.new.choose_opt},
           "Quit"       => ->{exit}
         }
       end
@@ -575,18 +653,70 @@ module Cliptic
         super.merge({
           ?h => ->{selector.cursor -= 1},
           ?l => ->{selector.cursor += 1},
-          #?j => ->{inc_date(1)},
-          #?k => ->{inc_date(-1)},
+          ?j => ->{inc_date(1)},
+          ?k => ->{inc_date(-1)},
         })
       end
+      def stat_date
+        Date.new(*@opts.reverse)
+      end
+      private
       def set_date(date:)
         @opts = [] unless @opts
         @opts[0] = date.day
         @opts[1] = date.month
         @opts[2] = date.year
       end
-      def stat_date
-        Date.new(*@opts.reverse)
+      def next_date(n)
+        @opts.dup.tap{|d| d[selector.cursor] += n }
+      end
+      def inc_date(n)
+        case selector.cursor
+        when 0 then inc_day(n)
+        when 1 then inc_month(n)
+        when 2 then @opts[2] += n
+        end
+        check_in_range
+      end
+      def inc_day(n)
+        next_date(n).tap do |date|
+          if valid?(date)
+            @opts[0]+= n
+          elsif date[0] == 0
+            set_date(date:stat_date-1)
+          elsif date[0] > 28
+            set_date(date:stat_date+1)
+          end
+        end
+      end
+      def inc_month(n)
+        next_date(n).tap do |date|
+          if valid?(date)
+            @opts[1] += n
+          elsif date[1] == 0
+            set_date(date:stat_date << 1)
+          elsif date[1] == 13
+            set_date(date:stat_date >> 1)
+          elsif date[0] > 28
+            set_date(date:last_day_of_month(date:date))
+          end
+        end
+      end
+      def valid?(date)
+        Date.valid_date?(*date.reverse)
+      end
+      def last_day_of_month(date:)
+        Date.new(date[2], date[1]+1, 1)-1
+      end
+      def check_in_range
+        set_date(date:Date.today) if date_late?
+        set_date(date:Date.today << 9) if date_early?
+      end
+      def date_late?
+        stat_date > Date.today
+      end
+      def date_early?
+        stat_date < Date.today<<9
       end
     end
     class This_Week < Interface::Menu_With_Stats
@@ -611,8 +741,161 @@ module Cliptic
         "Recently Played"
       end
     end
+    class High_Scores < Interface::SQL_Menu_With_Stats
+      def initialize
+        super(table:Database::Scores)
+      end
+      def title
+        "High Scores"
+      end
+    end
+  end
+  module Player
+    module Windows
+      class Top_Bar < Cliptic::Interface::Top_Bar
+
+      end
+      class Bottom_Bar < Cliptic::Interface::Bottom_Bar
+
+      end
+      class Grid < Cliptic::Windows::Grid
+
+      end
+      class Cell < Cliptic::Windows::Cell
+
+      end
+      class Cluebox < Cliptic::Windows::Window
+
+      end
+    end
+    module Fetch
+      class Request
+        URL="https://data.puzzlexperts.com/puzzleapp-v3/data.php"
+        attr_reader :data
+        def initialize(date:Date.today, psid:100000160)
+          @data = {date:date, psid:psid}
+        end
+        def send_request
+          valid_input? ? raw : (raise Errors::Invalid_Date)
+        end
+        def valid_input?
+          JSON.parse(raw, symbolize_names:true)
+            .dig(:cells, 0, :meta, :data).length > 0
+        end
+        def raw
+          @raw || Curl.get(URL, data).body
+        end
+      end
+      class Cache < Request
+        Path = "#{Dir.home}/.cache/cliptic"
+        def initialize(date:Date.today)
+          super(date:date)
+          make_cache_dir
+        end
+        def query
+          date_cached? ? read_cache : send_request
+            .tap{|str| write_cache(str)}
+        end
+        def make_cache_dir
+          FileUtils.mkdir_p(Path) unless Dir.exist?(Path)
+        end
+        def date_cached?
+          File.exist?(file_path)
+        end
+        def file_path
+          "#{Path}/#{data[:date]}"
+        end
+        def read_cache
+          File.read(file_path)
+        end
+        def write_cache(str)
+          File.write(file_path, str)
+        end
+      end
+      class Parser
+        attr_reader :raw
+        def initialize(date:Date.today)
+          @raw = Cache.new(date:date).query
+        end
+        def parse
+          [ parse_clues(raw), parse_size(raw) ]
+        end
+        private
+        def parse_size(raw)
+          Pos.mk(*["rows", "columns"]
+            .map{|field| raw.scan(/#{field}=(.*?(?=&))/)[0][0]}
+          )
+        end
+        def parse_clues(raw)
+          JSON.parse(raw, symbolize_names:true)
+            .dig(:cells, 0, :meta, :data)
+            .gsub(/^(.*?&){3}(.*)&id=.*$/, "\\2")
+            .split(/(?:^|&).*?=/).drop(1)
+            .each_slice(5).to_a
+            .map{|data| Puzzle::Clue.new(**struct_clue(data))}
+        end
+        def struct_clue(raw_clue)
+          {
+              ans:raw_clue[0].chars.map(&:upcase),
+             hint:CGI.unescape(raw_clue[1]),
+              dir:raw_clue[2].to_sym,
+            start:Pos.mk(raw_clue[3], raw_clue[4])
+          }
+        end
+      end
+    end
+    module Puzzle
+      class Puzzle
+        include Fetch
+        attr_reader :clues, :size, :indices, :map
+        def initialize(date:Date.today)
+          @clues, @size = Parser.new(date:date).parse
+          @indices = index_clues
+          @map     = map_clues
+          @sorted  = sort_clues
+          @blocks  = find_blocks
+          chain_clues
+        end
+        private
+        def index_clues
+          clues.map{|clue| clue.start.values}.uniq.sort
+            .each_with_index
+            .map{ |pos, n| [n+1, Pos.mk(*pos)] }.to_h
+            .each{|n, pos| clues.find_all{|clue| clue.start==pos}}
+            .each{|clue| clue.index = n}
+        end
+        def empty
+          Array.new(size[:y]){ Array.new(size[:x], ".") }
+        end
+        def map_clues
+          { index:{a:empty, d:empty}, chars:{empty} }.tap do |map|
+            clues.each do |clue|
+              clue.coords.zip(clue.ans) do |pos, char|
+                map[:index][clue.dir][pos[:y]][pos[:x]] = clue
+                map[:chars][pos[:y]][pos[:x]] = char
+              end
+            end
+          end
+        end
+        def sort_clues
+
+        end
+        def chain_clues
+
+        end
+      end
+      class Clue
+        def initialize(ans:, hint:, dir:, start:)
+
+        end
+      end
+    end
+    module Game
+
+    end
   end
 end
 
-Cliptic::Screen.setup
-Cliptic::Menus::Main.new.choose_opt
+#Cliptic::Screen.setup
+#Cliptic::Menus::Main.new.choose_opt
+puts Cliptic::Player::Puzzle::Puzzle.new.inspect

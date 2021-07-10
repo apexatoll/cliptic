@@ -14,6 +14,9 @@ module Cliptic
       def title
         "cliptic:"
       end
+      def reset_pos
+        move(line:0, col:0)
+      end
     end
     class Bottom_Bar < Windows::Bar
       def initialize
@@ -23,8 +26,8 @@ module Cliptic
         super
         noutrefresh
       end
-      def reset_pos_resize
-        move(Curses.lines-1, 0)
+      def reset_pos
+        move(line:Curses.lines-1, col:0)
       end
     end
     class Logo < Windows::Grid
@@ -46,7 +49,6 @@ module Cliptic
       include Interface
       attr_reader :logo, :title, :top_b, :bot_b, :draw_bars
       def initialize(y:, title:false)
-        line = (Curses.lines-15)/2
         @logo = Logo.new(line:line+1)
         @title = title
         super(y:y, x:logo.x+4, line:line, col:nil)
@@ -61,36 +63,36 @@ module Cliptic
         add_title if title
         self
       end
+      def line
+        (Curses.lines-15)/2
+      end
       def add_title(y:4, str:title, cp:$colors[:title], bold:true)
         add_str(y:y, str:str, cp:cp, bold:bold)
       end
+      def reset_pos
+        move(line:line)
+        logo.move(line:line+1)
+        [top_b, bot_b].each(&:reset_pos)
+      end
     end
     class Resizer < Menu_Box
-      attr_reader :redraw
-      def initialize(redraw:nil)
+      def initialize
         super(y:8, title:title)
-        @redraw = redraw
       end
       def title
         "Screen too small"
       end
       def draw
         Screen.clear
-        reset_pos_resize
-        top_b.reset_pos_resize
-        bot_b.reset_pos_resize
-        logo.reset_pos_resize
+        reset_pos
         super
         wrap_str(str:prompt, line:5)
         refresh
       end
       def show
         while Screen.too_small?
-          draw
-          getch
+          draw; getch
         end
-        clear
-        redraw.call if redraw
       end
       def prompt
         "Screen too small. Increase screen size to run cliptic."
@@ -159,15 +161,13 @@ module Cliptic
       end
     end
     class Menu < Menu_Box
-      attr_reader :selector
+      attr_reader :selector, :height
       def initialize(height:opts.length+6,
                      sel:Selector, sel_opts:opts.keys,
                      tick:nil, **)
         super(y:height, title:title)
+        @height = height
         @selector = sel.new(opts:sel_opts, ctrls:ctrls, line:line+5, x:logo.x, tick:tick)
-      end
-      def title
-        "Placeholder"
       end
       def choose_opt
         show
@@ -190,19 +190,24 @@ module Cliptic
       end
       def ctrls
         {
-          ?j => ->{selector.cursor += 1},
-          ?k => ->{selector.cursor -= 1},
-          10 => ->{enter},
-          ?q => ->{back},
-          3 => ->{back},
-          Curses::KEY_RESIZE => ->{Screen.redraw(cb:->{redraw; draw})}
+          ?j  => ->{selector.cursor += 1},
+          ?k  => ->{selector.cursor -= 1},
+          258 => ->{selector.cursor += 1},
+          259 => ->{selector.cursor -= 1},
+          10  => ->{enter},
+          ?q  => ->{back},
+          3   => ->{back},
+          Curses::KEY_RESIZE => 
+            ->{Screen.redraw(cb:->{redraw})}
         }
       end
+      def reset_pos
+        super
+        selector.move(line:line+5)
+      end
       def redraw
-        Screen.clear
-        reset_pos_resize
-        top_b.reset_pos_resize
-        bot_b.reset_pos_resize
+        reset_pos
+        draw
       end
     end
     class Menu_With_Stats < Menu
@@ -224,6 +229,10 @@ module Cliptic
         Main::Player::Game.new(date:stat_date).play
         show
       end
+      def reset_pos
+        super
+        stat_win.move(line:line+height)
+      end
     end
     class SQL_Menu_With_Stats < Menu_With_Stats
       include Database
@@ -234,7 +243,7 @@ module Cliptic
         super
       end
       def opts
-        dates.map{|d| d.to_long}
+        dates.map{|d| d.to_long} || [nil]
       end
       def stat_date
         dates[selector.cursor]
@@ -242,8 +251,9 @@ module Cliptic
     end
     class Yes_No_Menu < Menu
       attr_reader :yes, :no, :post_proc
-      def initialize(yes:, no:->{back}, post_proc:nil)
+      def initialize(yes:, no:->{back}, post_proc:nil, title:nil)
         super
+        @title = title
         @yes, @no, @post_proc = yes, no, post_proc
       end
       def opts

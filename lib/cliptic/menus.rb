@@ -26,10 +26,14 @@ module Cliptic
       end
       def ctrls
         super.merge({
-          ?h => ->{selector.cursor -= 1},
-          ?l => ->{selector.cursor += 1},
-          ?j => ->{inc_date(1)},
-          ?k => ->{inc_date(-1)},
+          ?h  => ->{selector.cursor -= 1},
+          ?l  => ->{selector.cursor += 1},
+          ?j  => ->{inc_date(1)},
+          ?k  => ->{inc_date(-1)},
+          258 => ->{inc_date(1)},
+          259 => ->{inc_date(-1)},
+          260 => ->{selector.cursor -= 1},
+          261 => ->{selector.cursor += 1}
         })
       end
       def stat_date

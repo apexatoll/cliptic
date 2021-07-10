@@ -26,17 +26,35 @@ module Cliptic
         $config = Default.config
       end
       def set
+        cfg_file_exists? ? 
+          read_cfg : gen_cfg_menu.choose_opt
+        $config = make_bool($config)
+      end
+      private
+      def read_cfg
         Reader.new.tap do |file|
-          keys.each do |dest, key|
+          cfg_file_keys.each do |dest, key|
             dest.merge!(file.read(**key))
           end
         end
       end
-      def keys
+      def cfg_file_keys
         {
           $colors => {key:"hi"},
           $config => {key:"set"}
         }
+      end
+      def cfg_file_exists?
+        File.exist?(File_Path)
+      end
+      def make_bool(hash)
+        hash.map{|k, v| [k, v == 1]}.to_h
+      end
+      def gen_cfg_menu
+        Cliptic::Interface::Yes_No_Menu.new(
+          yes:->{Generator.new.write},
+          title:"Generate a config file?"
+        )
       end
     end
     class Reader
@@ -52,8 +70,30 @@ module Cliptic
           .to_h
       end
     end
-    class Maker
-
+    class Generator
+      def write
+        FileUtils.mkdir_p(Dir_Path) unless cfg_dir_exists
+        File.write(File_Path, make_file)
+      end
+      private
+      def cfg_dir_exists
+        Dir.exist?(Dir_Path)
+      end
+      def file_data
+        {
+          "Colour Settings" => {
+            cmd:"hi", values:Default.colors
+          },
+          "Interface Settings" => {
+            cmd:"set", values:Default.config
+          }
+        }
+      end
+      def make_file
+        file_data.map do |comment, data|
+          ["//#{comment}"] + data[:values].map{|k, v| "#{data[:cmd]} #{k} #{v}"} + ["\n"]
+        end.join("\n")
+      end
     end
   end
 end

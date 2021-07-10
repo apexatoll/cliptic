@@ -24,7 +24,7 @@ module Cliptic
           { N:"NORMAL", I:"INSERT" }[mode]
         end
         def controls
-          "[^S]: Save | [^R]: Reveal | [^K]: Reset"
+          "^S save | ^R reveal | ^E reset | ^G check"
         end
       end
       class Grid < Cliptic::Windows::Grid
@@ -137,7 +137,7 @@ module Cliptic
           @data = {date:date, psid:psid}
         end
         def send_request
-          valid_input? ? raw : (raise Errors::Invalid_Date)
+          valid_input? ? raw : (raise Cliptic::Errors::Invalid_Date.new(data[:date]))
         end
         def valid_input?
           JSON.parse(raw, symbolize_names:true)
@@ -295,8 +295,8 @@ module Cliptic
       end
       class Clue
         attr_reader :ans, :dir, :start, :hint, :length, 
-          :coords, :done
-        attr_accessor :index, :next, :prev, :cells
+          :coords
+        attr_accessor :done, :index, :next, :prev, :cells
         def initialize(ans:, hint:, dir:, start:)
           @ans, @dir, @start = ans, dir, start
           @length = ans.length
@@ -383,6 +383,11 @@ module Cliptic
           def title
             "Paused"
           end
+          def ctrls
+            super.merge({
+              ?q => ->{back; game.unpause}
+            })
+          end
         end
         class Puzzle_Complete < Interface::Menu
           def initialize
@@ -397,6 +402,11 @@ module Cliptic
           end
           def title
             "Puzzle Complete!"
+          end
+          def ctrls
+            super.merge({
+              ?q => ->{back; Screen.clear}
+            })
           end
         end
         class Reset_Progress < Interface::Yes_No_Menu
@@ -504,7 +514,8 @@ module Cliptic
           next_clue(n:1)
         end
         def clear_all_cells
-          grid.cells.flatten.each{|c| c.clear}
+          grid.cells.flatten.each{|cell| cell.clear}
+          puzzle.clues.each{|clue| clue.done = false}
         end
         def advance_cursor(n:1)
           case dir
@@ -579,10 +590,12 @@ module Cliptic
           wrap
         end
         def wrap
-          pos[:x] += 15 while pos[:x] < 0
-          pos[:y] += 15 while pos[:y] < 0
-          pos[:x] -= 15 while pos[:x] > 14
-          pos[:y] -= 15 while pos[:y] > 14
+          pos[:x] += grid.sq[:x] while pos[:x] < 0
+          pos[:y] += grid.sq[:y] while pos[:y] < 0
+          pos[:x] -= grid.sq[:x] while pos[:x] >= 
+            grid.sq[:x]
+          pos[:y] -= grid.sq[:y] while pos[:y] >= 
+            grid.sq[:y]
         end
       end
       class Game
@@ -729,6 +742,8 @@ module Cliptic
         def route(char:)
           if is_ctrl_key?(char)
             controls[:G][char.to_i]
+          elsif is_arrow_key?(char)
+            arrow(char)
           else
             case game.mode
             when :N then normal(char:char)
@@ -755,15 +770,28 @@ module Cliptic
         def is_ctrl_key?(char)
           (1..26).cover?(char)
         end
+        def is_arrow_key?(char)
+          (258..261).cover?(char)
+        end
+        def arrow(char)
+          mv = case char
+          when Curses::KEY_UP    then {y:-1}
+          when Curses::KEY_DOWN  then {y:1}
+          when Curses::KEY_LEFT  then {x:-1}
+          when Curses::KEY_RIGHT then {x:1}
+          end
+          ->{game.board.move(**mv)}
+        end
         def controls(n=1)
           {
             G:{
               3  => ->{game.exit},
               5  => ->{game.reset_menu.choose_opt},
+              7  => ->{game.board.puzzle.check_all},
               9  => ->{game.board.swap_direction},
+              16 => ->{game.pause},
               18 => ->{game.reveal},
-              19 => ->{game.save},
-              16 => ->{game.pause}
+              19 => ->{game.save}
             },
             N:{
               ?j => ->{game.board.move(y:n)},
@@ -771,6 +799,7 @@ module Cliptic
               ?h => ->{game.board.move(x:n*-1)},
               ?l => ->{game.board.move(x:n)},
               ?i => ->{game.mode = :I},
+              ?I => ->{game.board.to_start; game.mode=:I},
               ?w => ->{game.board.next_clue(n:n)},
               ?a => ->{game.board.advance_cursor(n:1); game.mode=:I},
               ?b => ->{game.board.prev_clue(n:n)},

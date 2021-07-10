@@ -1,10 +1,10 @@
 # CLIptic
 
-gif here
+![](https://github.com/apexatoll/cliptic-files/blob/master/demo.gif)
 
 - A command-line interface for downloading and playing cryptic crosswords from within the terminal. 
 - Puzzles are sourced from the free crosswords uploaded daily to [Lovatt's][1]. 
-- CLIptic is written in Ruby using ncurses
+- CLIptic is written in Ruby using the ncurses library
 
 ## Features
 - VIM-like keybindings
@@ -12,7 +12,7 @@ gif here
 - Progress can be saved to continue puzzles at a later time
 - Time taken to complete the puzzle is logged on completion of puzzle. High scores can be viewed within CLIptic
 - Track progress for puzzles released in the last week
-- Play recently played puzzles
+- Puzzle history is tracked, making it easy to pick up recently played puzzles
 - Select puzzles to play by date manually (puzzles are available for up to 9 months from release)
 - Customisation of CLIptic's appearance
 
@@ -38,7 +38,7 @@ gem install cliptic
 ### Manually
 - Or, to install manually:
 ```bash
-git clone $THIS-HTML
+git clone https://github.com/apexatoll/cliptic
 cd cliptic
 rake build install
 ```
@@ -47,6 +47,22 @@ rake build install
 - To run cliptic after installation, simply run the command `cliptic` from within the terminal
 - When the program is first run it will ask the user whether they want cliptic to generate a default config file. This is located in `~/.config/cliptic/cliptic.rc`
 - If the screen is too small to display cliptic, please resize until the prompt disappears
+
+### Other Commands
+- There are other commands that can be run from the command line
+
+#### Today
+- The command `cliptic today` will play today's puzzle
+- This command can be followed with a negative number to play a puzzle n days before today
+- For example `cliptic today -2` will play the puzzle from the day before yesterday
+
+#### Resetting Progress
+- The command `cliptic reset` will allow the user to reset progress in cliptic.
+- The command can be followed with either `all`, `states`, `scores` or `recents`
+- `all` resets all progress
+- `states` resets all game progress
+- `scores` resets high scores
+- `recents` resets puzzle history
 
 ## Main Menu
 - On the main menu there are several options 
@@ -85,7 +101,7 @@ rake build install
 | `^S`    | Save current progress (note that progress is saved when exiting puzzles by default)                 |
 | `^R`    | Reveals solution for focussed clue (note that this forfeits adding this puzzle to high scores) |
 | `^C`    | Exit puzzle                                                                                            |
-| `^K`    | Resets timer and progress for puzzle                                                                   |
+| `^E`    | Resets timer and progress for puzzle                                                                   |
 | `^G`    | Mark current progress (only relevant if auto_mark is set to 0)                                       |
 | `^P`    | Pause game                                                                                             |
 
@@ -100,6 +116,7 @@ rake build install
 | `e`                | Move to end of clue                                                |
 | `<clue number>g`   | Move to clue by number                                             |
 | `<cell number>G`   | Move to cell by number (not 0 indexed                              |
+| `TAB`              | Swap from across to down clue (or vice versa)                      |
 
 ### Entering Text (Insert Mode)
 
@@ -112,21 +129,21 @@ rake build install
 ### Normal Mode
 
 | Command   | Action                                                                      |
-|-----------|--------------------------------------------------------------------------------------------------------|
-| `x`       | deletes the character under the cursor                                      |
-| `d(obj)`  | delete the object provided after d (may be w for word or l for character) |
-| `c(obj)`  | calls d(obj) then enters insert mode                                        |
-| `r(char)` | Replaces the character under the cursor with `char`                         |
-| `i`         | Enter insert mode                                                           |
-| `I`         | Move to the start of the clue and enter insert mode                         |
+|-----------|-----------------------------------------------------------------------------------------|
+| `I`       | Move to the start of the clue and enter insert mode                         |
 | `a`       | Advance one cell and enter insert mode                                      |
+| `c(obj)`  | calls d(obj) then enters insert mode                                        |
+| `d(obj)`  | delete the object provided after d (may be w for word or l for character) |
+| `i`       | Enter insert mode                                                           |
+| `r(char)` | Replaces the character under the cursor with `char`                         |
+| `x`       | deletes the character under the cursor                                      |
 
 ## Configuration
 - Cliptic settings can be added to the cliptic.rc file found at `~/.config/cliptic/cliptic.rc`
 
 ### Interface
 - Affect how cliptic functions
-- Set usign the formay
+- Set using the format
 ```
 set <setting> <0/1>
 ```
@@ -156,6 +173,7 @@ hi <obj> <colour>
 | active_num | Grid number of active clue | 3       |
 | bar        | Top and bottom bars        | 16      |
 | block      | Grid blocks                | 8       |
+| box        | Box outlines               | 8       |
 | grid       | cliptic grids              | 8       |
 | incorrect  | Incorrect clue attempt     | 1       |
 | correct    | Correct clue attempt       | 2       |
@@ -172,6 +190,6 @@ hi <obj> <colour>
 - If you have any feature requests or find any bugs please leave a new issue
 - Contributions welcome!
 
-*Dedicated to WES who passed on his love of crosswords*
+*Dedicated to WES who passed on to me his love of crosswords*
 
 [1]: https://lovattspuzzles.com/online-puzzles-competitions/daily-cryptic-crossword/

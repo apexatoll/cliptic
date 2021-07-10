@@ -47,34 +47,17 @@ module Cliptic
       n.to_s.chars.map{|n| Nums[n.to_i]}.join
     end
   end
-  class Screen
-    def self.setup
-      Curses.init_screen
-      Curses.start_color
-      Curses.raw
-      Curses.use_default_colors
-      Curses.noecho
-      Curses.curs_set(0)
-      set_colors
-    end
-    def self.set_colors
-      1.upto(8) do |i|
-        Curses.init_pair(i, i, -1)
-        Curses.init_pair(i+8, 0, i)
+  module Errors
+    class Invalid_Date < StandardError
+      attr_reader :date
+      def initialize(date)
+        @date = date
       end
-    end
-    def self.clear
-      Curses.stdscr.clear
-      Curses.stdscr.refresh
-    end
-    def self.too_small?
-      Curses.lines < 36 || Curses.cols < 61
-    end
-    def self.redraw(cb:)
-      if Screen.too_small?
-        Interface::Resizer.new(redraw:cb).show
-      else
-        cb.call
+      def message
+        <<~msg
+        Invalid date passed #{date}
+        Earliest date #{Date.today<<9}
+        msg
       end
     end
   end

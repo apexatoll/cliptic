@@ -71,13 +71,16 @@ module Cliptic
       def refresh
         super; self
       end
-      def reset_pos_resize
+      def reset_pos
         move(
           *[centered_y, centered_x]
           .zip(total_dims, [y, x], [line, col])
           .map{|cent, tot, dim, pos| cent ? (tot-dim)/2 : pos}
         )
         refresh
+      end
+      def move(line:nil, col:nil)
+        super(*center_pos(y:y, x:x, line:line, col:col))
       end
       private
       def wrap_dims(y:, x:)

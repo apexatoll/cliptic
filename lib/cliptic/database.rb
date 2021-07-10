@@ -1,10 +1,13 @@
 module Cliptic
   module Database
-    Path = "#{Dir.home}/db/cw.db"
+    Dir_Path  = "#{Dir.home}/.config/cliptic/db"
+    File_Path = "#{Dir_Path}/cliptic.db"
     class SQL
       attr_reader :db, :table
       def initialize(table:)
-        @db, @table = SQLite3::Database.open(Path), table
+        make_db_dir
+        @table = table
+        @db    = SQLite3::Database.open(File_Path)
         db.results_as_hash = true
         self
       end
@@ -28,7 +31,13 @@ module Cliptic
       def delete(where:nil)
         db.execute(sql_delete(where:where), where&.values)
       end
+      def drop
+        db.execute("DROP TABLE #{table}")
+      end
       private
+      def make_db_dir
+        FileUtils.mkdir_p(Dir_Path) unless Dir.exist?(Dir_Path)
+      end
       def sql_make
         "CREATE TABLE IF NOT EXISTS #{table}(#{
           cols.map{|col,type|"#{col} #{type}"}.join(", ")
@@ -68,6 +77,14 @@ module Cliptic
       end
       def placeholder(keys, glue=" AND ")
         keys.map{|k| "#{k} = ?"}.join(glue)
+      end
+    end
+    class Delete
+      def self.table(table)
+        SQL.new(table:table).drop
+      end
+      def self.all
+        File.delete(File_Path)
       end
     end
     class State < SQL

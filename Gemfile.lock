@@ -2,9 +2,9 @@ PATH
   remote: .
   specs:
     cliptic (0.1.0)
-      curb
-      curses
-      sqlite3
+      curb (~> 0.9.11)
+      curses (~> 1.4.0)
+      sqlite3 (~> 1.4.2)
 
 GEM
   remote: https://rubygems.org/

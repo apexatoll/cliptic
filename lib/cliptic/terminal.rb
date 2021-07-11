@@ -10,8 +10,8 @@ module Cliptic
       end
       private
       def self.setup
-        Config::Setter.new.set
         Screen.setup
+        Config::Setter.new.set
         at_exit{close}
       end
       def self.main_menu

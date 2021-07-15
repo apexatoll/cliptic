@@ -97,6 +97,9 @@ module Cliptic
       def prompt
         "Screen too small. Increase screen size to run cliptic."
       end
+      def line
+        (Curses.lines-8)/2
+      end
     end
     class Selector < Windows::Window
       attr_reader :opts, :ctrls, :run, :tick

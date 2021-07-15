@@ -1,20 +1,32 @@
-# CLIptic
+# `cliptic`: Crosswords in your Terminal
 
 ![](https://github.com/apexatoll/cliptic-files/blob/master/demo.gif)
 
+
 - A command-line interface for downloading and playing cryptic crosswords from within the terminal. 
 - Puzzles are sourced from the free crosswords uploaded daily to [Lovatt's][1]. 
-- CLIptic is written in Ruby using the ncurses library
+- cliptic is written in Ruby using the ncurses library
+
+## New to 0.1.2
+
+### Bug Fixes
+- Screen setup/config file bug fix
+	* Previously screen resize prompt would not show if screen was too small due to inability to source default colours
+- Fix earliest date bug (thank you `samtell21` for pointing this out)
+- Center the resize prompt
+
+### Features
+- Add menu recolour feature
 
 ## Features
 - VIM-like keybindings
 - Puzzles scraped daily from Lovatt's. Puzzles are cached locally to prevent excessive requests
 - Progress can be saved to continue puzzles at a later time
-- Time taken to complete the puzzle is logged on completion of puzzle. High scores can be viewed within CLIptic
+- Time taken to complete the puzzle is logged on completion of puzzle. High scores can be viewed within cliptic
 - Track progress for puzzles released in the last week
 - Puzzle history is tracked, making it easy to pick up recently played puzzles
 - Select puzzles to play by date manually (puzzles are available for up to 9 months from release)
-- Customisation of CLIptic's appearance
+- Customisation of cliptic's appearance
 
 ## Dependencies
 
@@ -31,7 +43,7 @@
 ## Installing
 
 ### As a Gem
-- CLIptic is available as a Ruby Gem. To install, simply run:
+- cliptic is available as a Ruby Gem. To install, simply run:
 ```bash
 gem install cliptic
 ```
@@ -97,26 +109,26 @@ rake build install
 ### Global Commands
 
 | Command | Action                                                                                                 |
-|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `^S`    | Save current progress (note that progress is saved when exiting puzzles by default)                 |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `^S`    | Save current progress (note that progress is saved when exiting puzzles by default)                |
 | `^R`    | Reveals solution for focussed clue (note that this forfeits adding this puzzle to high scores) |
 | `^C`    | Exit puzzle                                                                                            |
 | `^E`    | Resets timer and progress for puzzle                                                                   |
-| `^G`    | Mark current progress (only relevant if auto_mark is set to 0)                                       |
+| `^G`    | Mark current progress (only relevant if auto_mark is set to 0)                                         |
 | `^P`    | Pause game                                                                                             |
 
 ### Navigation (Normal Mode)
 - There are several ways to navigate the cells of the cliptic grid in **NORMAL MODE**.
 
-| Command            | Action                                                             |
-|--------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| Command            | Action                                                         |
+|--------------------|----------------------------------------------------------------|
 | `h`, `j`, `k`, `l` | Move cursor left, up, down, right. Arrow keys can also be used |
-| `(n)w`             | Move to (nth) next unsolved clue                                   |
-| `(n)b`             | Move to (nth) previous unsolved clue                               |
-| `e`                | Move to end of clue                                                |
-| `<clue number>g`   | Move to clue by number                                             |
-| `<cell number>G`   | Move to cell by number (not 0 indexed                              |
-| `TAB`              | Swap from across to down clue (or vice versa)                      |
+| `(n)w`             | Move to (nth) next unsolved clue                               |
+| `(n)b`             | Move to (nth) previous unsolved clue                           |
+| `e`                | Move to end of clue                                            |
+| `<clue number>g`   | Move to clue by number                                         |
+| `<cell number>G`   | Move to cell by number (not 0 indexed                          |
+| `TAB`              | Swap from across to down clue (or vice versa)                  |
 
 ### Entering Text (Insert Mode)
 
@@ -128,15 +140,15 @@ rake build install
 
 ### Normal Mode
 
-| Command   | Action                                                                      |
-|-----------|-----------------------------------------------------------------------------------------|
-| `I`       | Move to the start of the clue and enter insert mode                         |
-| `a`       | Advance one cell and enter insert mode                                      |
-| `c(obj)`  | calls d(obj) then enters insert mode                                        |
+| Command   | Action                                                                         |
+|-----------|-----------------------------------------------------------------------------------------------------|
+| `I`       | Move to the start of the clue and enter insert mode                            |
+| `a`       | Advance one cell and enter insert mode                                         |
+| `c(obj)`  | calls d(obj) then enters insert mode                                           |
 | `d(obj)`  | delete the object provided after d (may be w for word or l for character) |
-| `i`       | Enter insert mode                                                           |
-| `r(char)` | Replaces the character under the cursor with `char`                         |
-| `x`       | deletes the character under the cursor                                      |
+| `i`       | Enter insert mode                                                              |
+| `r(char)` | Replaces the character under the cursor with `char`                            |
+| `x`       | deletes the character under the cursor                                         |
 
 ## Configuration
 - Cliptic settings can be added to the cliptic.rc file found at `~/.config/cliptic/cliptic.rc`
@@ -150,11 +162,11 @@ set <setting> <0/1>
 
 #### Settable Items
 
-| Item         | Description                    | Default |
-|--------------|--------------------------------|---------|
-| auto_advance | Move to next clue after solve  | 1       |
-| auto_mark    | Mark clues as they are entered | 1       |
-| auto_save    | Save progress on exit          | 1       |
+| Item           | Description                    | Default |
+|----------------|--------------------------------|---------|
+| `auto_advance` | Move to next clue after solve  | 1       |
+| `auto_mark`    | Mark clues as they are entered | 1       |
+| `auto_save`      | Save progress on exit          | 1       |
 
 ### Colours
 - Colours are numbered 1-16. 
@@ -168,22 +180,24 @@ hi <obj> <colour>
 	
 #### Settable Items
 
-| Item       | Description                | Default |
-|------------|----------------------------|---------|
-| active_num | Grid number of active clue | 3       |
-| bar        | Top and bottom bars        | 16      |
-| block      | Grid blocks                | 8       |
-| box        | Box outlines               | 8       |
-| grid       | cliptic grids              | 8       |
-| incorrect  | Incorrect clue attempt     | 1       |
-| correct    | Correct clue attempt       | 2       |
-| prompt     | Menu prompt                | 3       |
-| default    | Default text color         | 0       |
-| meta       | Clue box metadata          | 3       |
-| num        | Inactive grid numbers      | 8       |
-| logo_text  | Logo text color            | 3       |
-| I          | Insert mode prompt         | 15      |
-| N          | Normal mode prompt         | 12      |
+| Item            | Description                | Default |
+|-----------------|----------------------------|---------|
+| `active_num`    | Grid number of active clue | 3       |
+| `bar`           | Top and bottom bars        | 16      |
+| `block`         | Grid blocks                | 8       |
+| `box`           | Box outlines               | 8       |
+| `grid`          | cliptic grids              | 8       |
+| `incorrect`     | Incorrect clue attempt     | 1       |
+| `correct`       | Correct clue attempt       | 2       |
+| `prompt`        | Menu prompt                | 3       |
+| `default`       | Default text color         | 0       |
+| `meta`          | Clue box metadata          | 3       |
+| `num`           | Inactive grid numbers      | 8       |
+| `logo_text`     | Logo text color            | 3       |
+| `I`             | Insert mode prompt         | 15      |
+| `N`             | Normal mode prompt         | 12      |
+| `menu_active`   | Active menu option         | 15      |
+| `menu_inactive` | Inactive menu option       | 0       |
 
 ## Feedback
 - Cliptic is still in development

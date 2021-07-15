@@ -82,6 +82,12 @@ module Cliptic
       def move(line:nil, col:nil)
         super(*center_pos(y:y, x:x, line:line, col:col))
       end
+      def standout
+        color($colors[:menu_active])
+      end
+      def standend
+        color($colors[:menu_inactive])
+      end
       private
       def wrap_dims(y:, x:)
         [y, x].zip(total_dims)

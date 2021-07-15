@@ -16,8 +16,9 @@ module Cliptic
       end
     end
     class Select_Date < Interface::Menu_With_Stats
-      attr_reader :opts
+      attr_reader :opts, :earliest_date
       def initialize
+        @earliest_date = (Date.today << 9) + 1
         set_date(date:Date.today)
         super(height:7, sel:Interface::Date_Selector)
       end
@@ -88,14 +89,14 @@ module Cliptic
         Date.new(date[2], date[1]+1, 1)-1
       end
       def check_in_range
-        set_date(date:Date.today) if date_late?
-        set_date(date:Date.today << 9) if date_early?
+        set_date(date:Date.today)    if date_late?
+        set_date(date:earliest_date) if date_early?
       end
       def date_late?
         stat_date > Date.today
       end
       def date_early?
-        stat_date < Date.today<<9
+        stat_date < earliest_date
       end
     end
     class This_Week < Interface::Menu_With_Stats

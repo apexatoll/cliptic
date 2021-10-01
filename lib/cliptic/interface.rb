@@ -91,7 +91,8 @@ module Cliptic
       end
       def show
         while Screen.too_small?
-          draw; getch
+          draw
+          exit if (c = getch) == ?q || c == 3
         end
       end
       def prompt
@@ -179,6 +180,7 @@ module Cliptic
       def enter(pre_proc:->{hide}, post_proc:->{show})
         pre_proc.call if pre_proc
         opts.values[selector.cursor]&.call
+        reset_pos
         post_proc.call if post_proc
       end
       def back(post_proc:->{hide})
@@ -230,6 +232,7 @@ module Cliptic
       def enter
         hide
         Main::Player::Game.new(date:stat_date).play
+        reset_pos
         show
       end
       def reset_pos

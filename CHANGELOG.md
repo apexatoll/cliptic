@@ -16,3 +16,13 @@
 
 ### Features
 - Add menu recolour feature
+
+## [0.1.3] - 2021-10-01
+
+### Bug Fixes
+- Fix the ssl certificate bug that prevents fetching puzzles
+- Fix the "out of range" bug when moving to an undefined index using `g`
+
+### Features
+- Add manual redraw feature to the main puzzle view. Called with `^L` (useful for terminal resize)
+- Add exit controls to the resize interface (`q` or `^C`)

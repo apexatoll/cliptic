@@ -7,16 +7,15 @@
 - Puzzles are sourced from the free crosswords uploaded daily to [Lovatt's][1]. 
 - cliptic is written in Ruby using the ncurses library
 
-## New to 0.1.2
+## New to 0.1.3
 
 ### Bug Fixes
-- Screen setup/config file bug fix
-	* Previously screen resize prompt would not show if screen was too small due to inability to source default colours
-- Fix earliest date bug (thank you `samtell21` for pointing this out)
-- Center the resize prompt
+- Fix the ssl certificate bug that prevents fetching puzzles
+- Fix the "out of range" bug when moving to an undefined index using `g`
 
 ### Features
-- Add menu recolour feature
+- Add manual redraw feature to the main puzzle view. Called with `^L` (useful for terminal resize)
+- Add exit controls to the resize interface (`q` or `^C`)
 
 ## Features
 - VIM-like keybindings
@@ -108,14 +107,15 @@ rake build install
 
 ### Global Commands
 
-| Command | Action                                                                                                 |
-|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `^S`    | Save current progress (note that progress is saved when exiting puzzles by default)                |
+| Command | Action                                                                                              |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `^S`    | Save current progress (note that progress is saved when exiting puzzles by default)        |
 | `^R`    | Reveals solution for focussed clue (note that this forfeits adding this puzzle to high scores) |
-| `^C`    | Exit puzzle                                                                                            |
-| `^E`    | Resets timer and progress for puzzle                                                                   |
-| `^G`    | Mark current progress (only relevant if auto_mark is set to 0)                                         |
-| `^P`    | Pause game                                                                                             |
+| `^C`    | Exit puzzle                                                                                         |
+| `^E`    | Resets timer and progress for puzzle                                                                |
+| `^G`    | Mark current progress (only relevant if auto_mark is set to 0)                                      |
+| `^P`    | Pause game                                                                                          |
+| `^L`    | Redraws the screen (useful on resizing terminal window)                                             |
 
 ### Navigation (Normal Mode)
 - There are several ways to navigate the cells of the cliptic grid in **NORMAL MODE**.

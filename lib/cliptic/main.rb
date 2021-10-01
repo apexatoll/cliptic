@@ -144,7 +144,9 @@ module Cliptic
             .dig(:cells, 0, :meta, :data).length > 0
         end
         def raw
-          @raw || Curl.get(URL, data).body
+          @raw || Curl.get(URL, data) do |curl|
+            curl.ssl_verify_peer = false
+          end.body
         end
       end
       class Cache < Request
@@ -422,17 +424,18 @@ module Cliptic
       end
       class Board
         include Puzzle, Windows
-        attr_reader :puzzle, :grid, :box, :cursor, :clue, :dir
-        def initialize(date:Date.today)
+        attr_reader :puzzle, :grid, :box, :cursor, :clue, :dir, :state
+        def initialize(date:Date.today)#, state:)
           @puzzle = Puzzle::Puzzle.new(date:date)
           @grid   = Grid.new(puzzle:puzzle)
           @box    = Cluebox.new(grid:grid)
           @cursor = Cursor.new(grid:grid)
+          #@state  = state
         end
         def setup(state:nil)
           grid.draw
           load_state(state:state)
-          set_clue(clue:puzzle.first_clue, mv:true)
+          set_clue(clue:puzzle.first_clue, mv:true) if !@clue
           update
           self
         end
@@ -556,7 +559,7 @@ module Cliptic
           puzzle.get_clue(y:y, x:x, dir:dir)
         end
         def get_clue_by_index(i:)
-          puzzle.get_clue_by_index(i:i, dir:dir)
+          puzzle.get_clue_by_index(i:i, dir:dir) || clue
         end
         def addch(char:)
           current_cell.write(char.upcase)
@@ -605,16 +608,13 @@ module Cliptic
         attr_accessor :mode, :continue, :unsaved
         def initialize(date:Date.today)
           @date  = date
-          @state = State.new(date:date)
-          @board = Board.new(date:date)
-          @top_b = Top_Bar.new(date:date)
-          @bot_b = Bottom_Bar.new
+          init_windows
           @timer = Timer.new(time:state.time, bar:top_b, 
                              callback:->{board.update})
           @ctrls = Controller.new(game:self)
           @unsaved  = false
           @continue = true
-          setup
+          draw
         end
         def play
           if state.done
@@ -624,10 +624,11 @@ module Cliptic
             game_and_timer_threads.map(&:join)
           end
         end
-        def setup
-          [top_b, bot_b].each(&:draw)
-          self.mode = :N
-          board.setup(state:state)
+        def redraw
+          save
+          Screen.clear
+          init_windows
+          draw
         end
         def unsaved=(bool)
           @unsaved = bool
@@ -676,6 +677,17 @@ module Cliptic
           Screen.clear
         end
         private
+        def init_windows
+          @state = State.new(date:date)
+          @board = Board.new(date:date)
+          @top_b = Top_Bar.new(date:date)
+          @bot_b = Bottom_Bar.new
+        end
+        def draw
+          [top_b, bot_b].each(&:draw)
+          self.mode = :N
+          board.setup(state:state)
+        end
         def completed
           save
           log_score
@@ -789,6 +801,7 @@ module Cliptic
               5  => ->{game.reset_menu.choose_opt},
               7  => ->{game.board.puzzle.check_all},
               9  => ->{game.board.swap_direction},
+              12 => ->{game.redraw},
               16 => ->{game.pause},
               18 => ->{game.reveal},
               19 => ->{game.save}

@@ -1,6 +1,6 @@
 # `cliptic`: Crosswords in your Terminal
 
-![](https://github.com/apexatoll/cliptic-files/blob/master/demo.gif)
+![](https://github.com/apexatoll/cliptic/blob/master/assets/demo.gif)
 
 
 - A command-line interface for downloading and playing cryptic crosswords from within the terminal. 

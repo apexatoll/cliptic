@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.bindir = "bin"
   spec.executables << "cliptic"
   spec.require_paths = ["lib"]
-  spec.add_dependency("curses", "~> 1.4.0")
-  spec.add_dependency("curb", "~> 0.9.11")
-  spec.add_dependency("sqlite3", "~> 1.4.2")
+  spec.add_dependency("curses")
+  spec.add_dependency("curb")
+  spec.add_dependency("sqlite3")
 end

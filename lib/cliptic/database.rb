@@ -26,7 +26,7 @@ module Cliptic
                    values.values)
       end
       def update(values:, where:)
-        db.execute(sql_update(values:values, where:where), [values.values], [where.values])
+        db.execute(sql_update(values:values, where:where), values.values + where.values)
       end
       def delete(where:nil)
         db.execute(sql_delete(where:where), where&.values)

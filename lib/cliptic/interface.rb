@@ -245,7 +245,7 @@ module Cliptic
       attr_reader :dates
       def initialize(table:)
         @dates = table.new
-          .select_list.map{|d| Date.parse(d[0])}
+          .select_list.map{|d| Date.parse(d["date"])}
         super
       end
       def opts
